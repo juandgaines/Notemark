@@ -33,7 +33,8 @@ implementation(libs.androidx.splashscreen)
 
 Add splash background color to `res/values/colors.xml`:
 ```xml
-<color name="splash_background">#5977F7</color>  <!-- Adapt to your brand color -->
+<!-- TODO: Replace with your brand color -->
+<color name="splash_background">#5977F7</color>
 ```
 
 ## AndroidManifest.xml
@@ -144,6 +145,7 @@ fun NavigationRoot(isLoggedIn: Boolean) {
     val navController = rememberNavController()
     NavHost(
         navController = navController,
+        // TODO: Replace with your app's route objects
         startDestination = if (isLoggedIn) Route.Main else Route.Landing
     ) {
         // Define composable destinations here

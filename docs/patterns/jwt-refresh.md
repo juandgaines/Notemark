@@ -1,5 +1,7 @@
 # JWT Token Refresh (Android)
 
+> **Note:** This pattern shows the Ktor Auth bearer token refresh architecture. DTO fields, endpoint paths, and headers must be adapted to your API's contract.
+
 Pattern for implementing JWT bearer token refresh with Ktor Auth plugin and session expiration detection.
 
 ## HttpClientFactory with Token Refresh
@@ -7,7 +9,6 @@ Pattern for implementing JWT bearer token refresh with Ktor Auth plugin and sess
 ```kotlin
 package com.juandgaines.notemark.core.data.networking
 
-import com.juandgaines.notemark.BuildConfig
 import com.juandgaines.notemark.core.domain.AuthInfo
 import com.juandgaines.notemark.core.domain.SessionStorage
 import com.juandgaines.notemark.core.domain.util.Result
@@ -51,7 +52,7 @@ class HttpClientFactory(
             }
             defaultRequest {
                 contentType(ContentType.Application.Json)
-                header("X-User-Email", BuildConfig.USER_EMAIL)
+                // TODO: Add custom headers required by your API (e.g., API keys, client IDs)
             }
             install(Auth) {
                 bearer {
@@ -65,13 +66,15 @@ class HttpClientFactory(
                     refreshTokens {
                         // Don't refresh for auth endpoints
                         val path = response.call.request.url.encodedPath
-                        if (path.contains("/auth/login") || path.contains("/auth/register")) {
+                        // TODO: Replace with your actual auth endpoint paths
+                        if (path.contains("/your-auth-login-path") || path.contains("/your-auth-register-path")) {
                             return@refreshTokens BearerTokens("", "")
                         }
 
                         val info = sessionStorage.get()
                         val refreshResult = client.post<RefreshTokenRequest, AuthResponse>(
-                            route = "/api/auth/refresh",
+                            // TODO: Replace with your API's token refresh endpoint
+                            route = "/your-token-refresh-path",
                             body = RefreshTokenRequest(
                                 refreshToken = info?.refreshToken ?: "",
                             )
@@ -80,6 +83,7 @@ class HttpClientFactory(
                         }
 
                         if (refreshResult is Result.Success) {
+                            // TODO: Map response fields to your AuthInfo structure
                             val newAuthInfo = AuthInfo(
                                 accessToken = refreshResult.data.accessToken,
                                 refreshToken = refreshResult.data.refreshToken,
@@ -110,6 +114,7 @@ package com.juandgaines.notemark.auth.data.dto
 
 import kotlinx.serialization.Serializable
 
+// TODO: Match fields to your API's refresh endpoint request body
 @Serializable
 data class RefreshTokenRequest(
     val refreshToken: String,
@@ -123,6 +128,7 @@ package com.juandgaines.notemark.auth.data.dto
 
 import kotlinx.serialization.Serializable
 
+// TODO: Match fields to your API's auth response (e.g., accessToken, refreshToken, userId, expiresIn)
 @Serializable
 data class AuthResponse(
     val accessToken: String,
@@ -189,31 +195,6 @@ class MainViewModel(
 }
 ```
 
-## X-User-Email Header (Build Config)
-
-In `local.properties`:
-```properties
-USER_EMAIL=your.email@example.com
-```
-
-In `app/build.gradle.kts`:
-```kotlin
-android {
-    buildFeatures {
-        buildConfig = true
-    }
-
-    defaultConfig {
-        val localProperties = java.util.Properties().apply {
-            val file = rootProject.file("local.properties")
-            if (file.exists()) load(file.inputStream())
-        }
-        buildConfigField("String", "USER_EMAIL", "\"${localProperties["USER_EMAIL"] ?: ""}\"")
-        buildConfigField("String", "BASE_URL", "\"https://your-api.example.com\"")
-    }
-}
-```
-
 ## HttpClientExt — Refresh Token Support
 
 The `post` extension needs a variant that accepts a request builder for `markAsRefreshTokenRequest()`:
@@ -237,7 +218,6 @@ suspend inline fun <reified Request, reified Response : Any> HttpClient.post(
 ## Notes
 
 - `markAsRefreshTokenRequest()` tells Ktor Auth not to retry the refresh request itself
-- Skip auth endpoints (`/auth/login`, `/auth/register`) in `refreshTokens` to avoid infinite loops
+- Skip auth endpoints in `refreshTokens` to avoid infinite loops — replace the placeholder paths with your actual auth routes
 - On refresh failure, clear the session — the `observe()` flow in MainViewModel detects the null transition
-- `X-User-Email` header is read from BuildConfig, sourced from `local.properties`
-- The refresh endpoint path (`/api/auth/refresh`) should match your API
+- The refresh endpoint path and DTO fields must match your API contract

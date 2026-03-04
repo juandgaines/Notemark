@@ -91,26 +91,23 @@ val coreDataModule = module {
 }
 ```
 
-### Feature Module Example (Auth)
+### Feature Module Example
 
 ```kotlin
-package com.juandgaines.notemark.auth.di
+package com.juandgaines.notemark.yourfeature.di
 
-import com.juandgaines.notemark.auth.data.AuthRepositoryImpl
-import com.juandgaines.notemark.auth.domain.AuthRepository
-import com.juandgaines.notemark.auth.domain.UserDataValidator
-import com.juandgaines.notemark.auth.presentation.login.LoginViewModel
-import com.juandgaines.notemark.auth.presentation.register.RegisterViewModel
+// TODO: Replace with your actual feature classes
+import com.juandgaines.notemark.yourfeature.data.YourFeatureRepositoryImpl
+import com.juandgaines.notemark.yourfeature.domain.YourFeatureRepository
+import com.juandgaines.notemark.yourfeature.presentation.YourFeatureViewModel
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-val authModule = module {
-    singleOf(::AuthRepositoryImpl) bind AuthRepository::class
-    singleOf(::UserDataValidator)
-    viewModelOf(::LoginViewModel)
-    viewModelOf(::RegisterViewModel)
+val yourFeatureModule = module {
+    singleOf(::YourFeatureRepositoryImpl) bind YourFeatureRepository::class
+    viewModelOf(::YourFeatureViewModel)
 }
 ```
 

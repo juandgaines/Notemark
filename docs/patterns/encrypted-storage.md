@@ -69,6 +69,7 @@ object Crypto {
 ```kotlin
 package com.juandgaines.notemark.core.domain
 
+// TODO: Add or remove fields to match your auth token structure
 data class AuthInfo(
     val accessToken: String,
     val refreshToken: String,
@@ -83,6 +84,7 @@ package com.juandgaines.notemark.core.data.auth
 import com.juandgaines.notemark.core.domain.AuthInfo
 import kotlinx.serialization.Serializable
 
+// TODO: Add or remove fields to match your auth token structure
 @Serializable
 data class AuthInfoSerializable(
     val accessToken: String,
