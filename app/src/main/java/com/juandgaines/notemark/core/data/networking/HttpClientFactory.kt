@@ -1,5 +1,6 @@
 package com.juandgaines.notemark.core.data.networking
 
+import com.juandgaines.notemark.BuildConfig
 import com.juandgaines.notemark.auth.data.dto.AuthResponse
 import com.juandgaines.notemark.auth.data.dto.RefreshTokenRequest
 import com.juandgaines.notemark.core.domain.AuthInfo
@@ -23,7 +24,7 @@ import kotlinx.serialization.json.Json
 import timber.log.Timber
 
 class HttpClientFactory(
-    private val sessionStorage: SessionStorage
+    private val sessionStorage: SessionStorage,
 ) {
 
     fun build(): HttpClient {
@@ -45,7 +46,7 @@ class HttpClientFactory(
             }
             defaultRequest {
                 contentType(ContentType.Application.Json)
-                // TODO: Add custom headers required by your API (e.g., API keys, client IDs)
+                header("X-User-Email", BuildConfig.USER_EMAIL)
             }
             install(Auth) {
                 bearer {
@@ -53,36 +54,39 @@ class HttpClientFactory(
                         val info = sessionStorage.get()
                         BearerTokens(
                             accessToken = info?.accessToken ?: "",
-                            refreshToken = info?.refreshToken ?: ""
+                            refreshToken = info?.refreshToken ?: "",
                         )
                     }
                     refreshTokens {
+                        val path = response.call.request.url.encodedPath
+                        if (path.contains("/auth/login") || path.contains("/auth/register")) {
+                            return@refreshTokens BearerTokens("", "")
+                        }
+
                         val info = sessionStorage.get()
-                        // TODO: Replace with your API's refresh token request DTO and endpoint
-                        val response = client.post<RefreshTokenRequest, AuthResponse>(
-                            route = "/your-token-refresh-path",
+                        val refreshResult = client.post<RefreshTokenRequest, AuthResponse>(
+                            route = "/api/auth/refresh",
                             body = RefreshTokenRequest(
                                 refreshToken = info?.refreshToken ?: "",
                             )
-                        )
+                        ) {
+                            markAsRefreshTokenRequest()
+                        }
 
-                        if(response is Result.Success) {
-                            // TODO: Map response fields to your AuthInfo structure
+                        if (refreshResult is Result.Success) {
                             val newAuthInfo = AuthInfo(
-                                accessToken = response.data.accessToken,
-                                refreshToken = info?.refreshToken ?: "",
+                                accessToken = refreshResult.data.accessToken,
+                                refreshToken = refreshResult.data.refreshToken,
                             )
                             sessionStorage.set(newAuthInfo)
 
                             BearerTokens(
                                 accessToken = newAuthInfo.accessToken,
-                                refreshToken = newAuthInfo.refreshToken
+                                refreshToken = newAuthInfo.refreshToken,
                             )
                         } else {
-                            BearerTokens(
-                                accessToken = "",
-                                refreshToken = ""
-                            )
+                            sessionStorage.set(null)
+                            BearerTokens("", "")
                         }
                     }
                 }
