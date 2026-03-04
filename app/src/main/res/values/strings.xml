@@ -1,3 +1,57 @@
 <resources>
     <string name="app_name">Notemark</string>
+
+    <!-- Landing -->
+    <string name="landing_title">Your Own\nCollection of Notes</string>
+    <string name="landing_subtitle">Capture your thoughts and ideas.</string>
+    <string name="get_started">Get Started</string>
+    <string name="log_in">Log In</string>
+
+    <!-- Auth labels -->
+    <string name="email_label">Email</string>
+    <string name="password_label">Password</string>
+    <string name="username_label">Username</string>
+    <string name="repeat_password_label">Repeat password</string>
+
+    <!-- Auth screens -->
+    <string name="log_in_title">Log In</string>
+    <string name="log_in_subtitle">Capture your thoughts and ideas.</string>
+    <string name="create_account_title">Create account</string>
+    <string name="create_account_subtitle">Capture your thoughts and ideas.</string>
+    <string name="create_account">Create account</string>
+    <string name="dont_have_account">Don\'t have an account?</string>
+    <string name="already_have_account">Already have an account?</string>
+
+    <!-- Password visibility -->
+    <string name="show_password">Show password</string>
+    <string name="hide_password">Hide password</string>
+
+    <!-- Supporting text -->
+    <string name="supporting_username">Use between 3 and 20 characters for your username.</string>
+    <string name="supporting_password">Use 8+ characters with a number or symbol for better security.</string>
+
+    <!-- Validation errors -->
+    <string name="error_invalid_email">Invalid email provided</string>
+    <string name="error_invalid_password">Password must be at least 8 characters and include a number or symbol.</string>
+    <string name="error_username_too_short">Username must be at least 3 characters.</string>
+    <string name="error_username_too_long">Username can\'t be longer than 20 characters.</string>
+    <string name="error_passwords_dont_match">Passwords do not match</string>
+    <string name="error_invalid_credentials">Invalid login credentials.</string>
+    <string name="error_email_already_used">This email is already in use.</string>
+
+    <!-- Error messages for DataError -->
+    <string name="error_bad_request">Bad request. Please check your input.</string>
+    <string name="error_request_timeout">Request timed out. Please try again.</string>
+    <string name="error_unauthorized">You are not authorized. Please log in again.</string>
+    <string name="error_forbidden">Access denied.</string>
+    <string name="error_not_found">The requested resource was not found.</string>
+    <string name="error_conflict">A conflict occurred. Please try again.</string>
+    <string name="error_too_many_requests">Too many requests. Please wait a moment.</string>
+    <string name="error_no_internet">No internet connection. Please check your network.</string>
+    <string name="error_payload_too_large">The data is too large to send.</string>
+    <string name="error_server_error">A server error occurred. Please try again later.</string>
+    <string name="error_service_unavailable">Service is temporarily unavailable.</string>
+    <string name="error_serialization">Failed to process server response.</string>
+    <string name="error_unknown">An unknown error occurred.</string>
+    <string name="error_disk_full">Not enough storage space.</string>
 </resources>
