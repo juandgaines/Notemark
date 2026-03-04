@@ -1,5 +1,7 @@
 package com.juandgaines.notemark.core.data.networking
 
+import com.juandgaines.notemark.auth.data.dto.AuthResponse
+import com.juandgaines.notemark.auth.data.dto.RefreshTokenRequest
 import com.juandgaines.notemark.core.domain.AuthInfo
 import com.juandgaines.notemark.core.domain.SessionStorage
 import com.juandgaines.notemark.core.domain.util.Result
