@@ -1,3 +1,45 @@
 <resources>
     <string name="app_name">Notemark</string>
+
+    <!-- Error messages for DataError mapping -->
+    <string name="error_bad_request">Bad request. Please check your input.</string>
+    <string name="error_request_timeout">The request timed out. Please try again.</string>
+    <string name="error_unauthorized">You are not authorized. Please log in again.</string>
+    <string name="error_forbidden">Access denied.</string>
+    <string name="error_not_found">The requested resource was not found.</string>
+    <string name="error_conflict">A conflict occurred. Please try again.</string>
+    <string name="error_too_many_requests">Too many requests. Please wait and try again.</string>
+    <string name="error_no_internet">No internet connection. Please check your network.</string>
+    <string name="error_payload_too_large">The data is too large to send.</string>
+    <string name="error_server_error">A server error occurred. Please try again later.</string>
+    <string name="error_service_unavailable">The service is currently unavailable. Please try again later.</string>
+    <string name="error_serialization">Failed to process the response.</string>
+    <string name="error_unknown">An unknown error occurred.</string>
+    <string name="error_disk_full">Storage is full. Please free up space.</string>
+
+    <!-- Auth strings -->
+    <string name="your_own_collection_of_notes">Your Own Collection\nof Notes</string>
+    <string name="capture_your_thoughts">Capture your thoughts and ideas.</string>
+    <string name="get_started">Get Started</string>
+    <string name="log_in">Log In</string>
+    <string name="create_account">Create account</string>
+    <string name="email">Email</string>
+    <string name="email_placeholder">john.doe@example.com</string>
+    <string name="password">Password</string>
+    <string name="password_placeholder">Password</string>
+    <string name="username">Username</string>
+    <string name="username_placeholder">John.doe</string>
+    <string name="repeat_password">Repeat password</string>
+    <string name="dont_have_account">Don\'t have an account?</string>
+    <string name="already_have_account">Already have an account?</string>
+    <string name="invalid_login_credentials">Invalid login credentials</string>
+    <string name="email_already_exists">An account with this email already exists</string>
+    <string name="registration_successful">Registration successful</string>
+    <string name="username_support">Use between 3 and 20 characters for your username.</string>
+    <string name="username_error_min">Username must be at least 3 characters.</string>
+    <string name="username_error_max">Username can\'t be longer than 20 characters.</string>
+    <string name="invalid_email">Invalid email provided</string>
+    <string name="password_support">Use 8+ characters with a number or symbol for better security.</string>
+    <string name="password_error">Password must be at least 8 characters and include a number or symbol.</string>
+    <string name="passwords_dont_match">Passwords do not match</string>
 </resources>
