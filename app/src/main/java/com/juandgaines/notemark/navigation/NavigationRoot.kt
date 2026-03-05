@@ -1,11 +1,6 @@
 package com.juandgaines.notemark.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
@@ -13,6 +8,8 @@ import androidx.navigation.compose.rememberNavController
 import com.juandgaines.notemark.auth.presentation.landing.LandingScreen
 import com.juandgaines.notemark.auth.presentation.login.LoginScreenRoot
 import com.juandgaines.notemark.auth.presentation.register.RegisterScreenRoot
+import com.juandgaines.notemark.note.presentation.note_detail.NoteDetailScreenRoot
+import com.juandgaines.notemark.note.presentation.note_list.NoteListScreenRoot
 
 @Composable
 fun NavigationRoot(isLoggedIn: Boolean) {
@@ -66,14 +63,18 @@ fun NavigationRoot(isLoggedIn: Boolean) {
             }
         }
 
-        navigation<MainGraph>(startDestination = MainRoute) {
-            composable<MainRoute> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Main Screen")
-                }
+        navigation<MainGraph>(startDestination = NoteListRoute) {
+            composable<NoteListRoute> {
+                NoteListScreenRoot(
+                    onNavigateToNote = { noteId ->
+                        navController.navigate(NoteDetailRoute(noteId = noteId))
+                    },
+                )
+            }
+            composable<NoteDetailRoute> {
+                NoteDetailScreenRoot(
+                    onClose = { navController.popBackStack() },
+                )
             }
         }
     }

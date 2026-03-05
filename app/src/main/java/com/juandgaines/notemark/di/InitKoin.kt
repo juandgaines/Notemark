@@ -11,6 +11,7 @@ fun initKoin(app: Application) {
             appModule,
             coreDataModule,
             authModule,
+            noteModule,
         )
     }
 }

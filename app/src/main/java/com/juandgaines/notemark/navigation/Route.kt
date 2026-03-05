@@ -20,4 +20,7 @@ data object LoginRoute
 data object RegisterRoute
 
 @Serializable
-data object MainRoute
+data object NoteListRoute
+
+@Serializable
+data class NoteDetailRoute(val noteId: String)

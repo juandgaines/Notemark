@@ -30,6 +30,7 @@ class AuthRepositoryImpl(
                     AuthInfo(
                         accessToken = result.data.accessToken,
                         refreshToken = result.data.refreshToken,
+                        username = result.data.username,
                     )
                 )
             }
