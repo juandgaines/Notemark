@@ -1,73 +1,80 @@
 package com.juandgaines.notemark.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.juandgaines.notemark.auth.presentation.landing.LandingScreen
 import com.juandgaines.notemark.auth.presentation.login.LoginScreenRoot
 import com.juandgaines.notemark.auth.presentation.register.RegisterScreenRoot
+import com.juandgaines.notemark.note.presentation.note_detail.NoteDetailScreenRoot
+import com.juandgaines.notemark.note.presentation.note_list.NoteListScreenRoot
 
 @Composable
 fun NavigationRoot(isLoggedIn: Boolean) {
     val navController = rememberNavController()
     NavHost(
         navController = navController,
-        startDestination = if (isLoggedIn) Route.Main else Route.Landing
+        startDestination = if (isLoggedIn) MainGraph else AuthGraph
     ) {
-        composable<Route.Landing> {
-            LandingScreen(
-                onGetStarted = {
-                    navController.navigate(Route.Register) {
-                        popUpTo<Route.Landing> { inclusive = true }
+        navigation<AuthGraph>(startDestination = LandingRoute) {
+            composable<LandingRoute> {
+                LandingScreen(
+                    onGetStarted = {
+                        navController.navigate(RegisterRoute) {
+                            popUpTo<LandingRoute> { inclusive = true }
+                        }
+                    },
+                    onLogIn = {
+                        navController.navigate(LoginRoute) {
+                            popUpTo<LandingRoute> { inclusive = true }
+                        }
                     }
-                },
-                onLogIn = {
-                    navController.navigate(Route.Login) {
-                        popUpTo<Route.Landing> { inclusive = true }
+                )
+            }
+            composable<LoginRoute> {
+                LoginScreenRoot(
+                    onLoginSuccess = {
+                        navController.navigate(MainGraph) {
+                            popUpTo<AuthGraph> { inclusive = true }
+                        }
+                    },
+                    onSignUp = {
+                        navController.navigate(RegisterRoute) {
+                            launchSingleTop = true
+                        }
                     }
-                }
-            )
+                )
+            }
+            composable<RegisterRoute> {
+                RegisterScreenRoot(
+                    onRegisterSuccess = {
+                        navController.navigate(LoginRoute) {
+                            popUpTo<RegisterRoute> { inclusive = true }
+                        }
+                    },
+                    onLogIn = {
+                        navController.navigate(LoginRoute) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
         }
-        composable<Route.Login> {
-            LoginScreenRoot(
-                onLoginSuccess = {
-                    navController.navigate(Route.Main) {
-                        popUpTo(navController.graph.id) { inclusive = true }
-                    }
-                },
-                onSignUp = {
-                    navController.navigate(Route.Register) {
-                        launchSingleTop = true
-                    }
-                }
-            )
-        }
-        composable<Route.Register> {
-            RegisterScreenRoot(
-                onRegisterSuccess = {
-                    navController.navigate(Route.Login) {
-                        popUpTo<Route.Register> { inclusive = true }
-                    }
-                },
-                onLogIn = {
-                    navController.navigate(Route.Login) {
-                        launchSingleTop = true
-                    }
-                }
-            )
-        }
-        composable<Route.Main> {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Main Screen")
+
+        navigation<MainGraph>(startDestination = NoteListRoute) {
+            composable<NoteListRoute> {
+                NoteListScreenRoot(
+                    onNavigateToNote = { noteId ->
+                        navController.navigate(NoteDetailRoute(noteId = noteId))
+                    },
+                )
+            }
+            composable<NoteDetailRoute> {
+                NoteDetailScreenRoot(
+                    onClose = { navController.popBackStack() },
+                )
             }
         }
     }
