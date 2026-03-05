@@ -18,7 +18,10 @@ val coreDataModule = module {
     }
 
     single {
-        Room.databaseBuilder(androidContext(), NotemarkDatabase::class.java, "notemark.db").build()
+        Room.databaseBuilder(androidContext(), NotemarkDatabase::class.java, "notemark.db")
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
     }
     single { get<NotemarkDatabase>().noteDao }
+    single { get<NotemarkDatabase>().pendingCreationDao }
 }
