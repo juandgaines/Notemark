@@ -2,16 +2,22 @@ package com.juandgaines.notemark.navigation
 
 import kotlinx.serialization.Serializable
 
-sealed interface Route {
-    @Serializable
-    data object Landing : Route
+// Graph markers — for nested navigation graphs
+@Serializable
+data object AuthGraph
 
-    @Serializable
-    data object Login : Route
+@Serializable
+data object MainGraph
 
-    @Serializable
-    data object Register : Route
+// Screen routes
+@Serializable
+data object LandingRoute
 
-    @Serializable
-    data object Main : Route
-}
+@Serializable
+data object LoginRoute
+
+@Serializable
+data object RegisterRoute
+
+@Serializable
+data object MainRoute
