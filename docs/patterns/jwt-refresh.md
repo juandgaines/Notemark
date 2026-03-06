@@ -215,9 +215,38 @@ suspend inline fun <reified Request, reified Response : Any> HttpClient.post(
 }
 ```
 
+## Logout — Clearing Bearer Tokens
+
+Ktor's Auth plugin **persists bearer tokens in memory** even after you clear the session storage. If you only call `sessionStorage.set(null)` on logout, the next request may still attach the old token. You must also clear the in-memory token cache:
+
+```kotlin
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerAuthProvider
+
+fun HttpClient.clearBearerTokens() {
+    authProviders
+        .filterIsInstance<BearerAuthProvider>()
+        .firstOrNull()
+        ?.clearToken()
+}
+```
+
+Call this in your logout flow **before or alongside** clearing the session storage:
+
+```kotlin
+// In your AuthRepository or logout use case:
+suspend fun logout() {
+    httpClient.clearBearerTokens()
+    sessionStorage.set(null)
+}
+```
+
+Without this, a logged-out user's stale token can leak into requests made before the next app restart.
+
 ## Notes
 
 - `markAsRefreshTokenRequest()` tells Ktor Auth not to retry the refresh request itself
 - Skip auth endpoints in `refreshTokens` to avoid infinite loops — replace the placeholder paths with your actual auth routes
 - On refresh failure, clear the session — the `observe()` flow in MainViewModel detects the null transition
 - The refresh endpoint path and DTO fields must match your API contract
+- **Ktor persists bearer tokens in memory** — always call `clearToken()` on logout (see section above)
