@@ -10,6 +10,7 @@ import com.juandgaines.notemark.auth.presentation.login.LoginScreenRoot
 import com.juandgaines.notemark.auth.presentation.register.RegisterScreenRoot
 import com.juandgaines.notemark.note.presentation.note_detail.NoteDetailScreenRoot
 import com.juandgaines.notemark.note.presentation.note_list.NoteListScreenRoot
+import com.juandgaines.notemark.settings.presentation.settings_screen.SettingsScreenRoot
 
 @Composable
 fun NavigationRoot(isLoggedIn: Boolean) {
@@ -69,11 +70,24 @@ fun NavigationRoot(isLoggedIn: Boolean) {
                     onNavigateToNote = { noteId ->
                         navController.navigate(NoteDetailRoute(noteId = noteId))
                     },
+                    onNavigateToSettings = {
+                        navController.navigate(SettingsRoute)
+                    },
                 )
             }
             composable<NoteDetailRoute> {
                 NoteDetailScreenRoot(
                     onClose = { navController.popBackStack() },
+                )
+            }
+            composable<SettingsRoute> {
+                SettingsScreenRoot(
+                    onBackClick = { navController.popBackStack() },
+                    onLogoutSuccess = {
+                        navController.navigate(AuthGraph) {
+                            popUpTo<MainGraph> { inclusive = true }
+                        }
+                    },
                 )
             }
         }

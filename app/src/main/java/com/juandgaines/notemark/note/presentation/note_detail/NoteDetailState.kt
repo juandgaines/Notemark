@@ -10,4 +10,8 @@ data class NoteDetailState(
     val hasUnsavedChanges: Boolean = false,
     val showDiscardDialog: Boolean = false,
     val canSave: Boolean = false,
+    val mode: NoteDetailMode = NoteDetailMode.VIEW,
+    val createdAt: String = "",
+    val lastEditedAt: String = "",
+    val areUiElementsVisible: Boolean = true,
 )

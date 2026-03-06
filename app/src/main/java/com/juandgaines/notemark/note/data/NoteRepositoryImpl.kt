@@ -125,4 +125,9 @@ class NoteRepositoryImpl(
             pendingCreationDao.deleteByNoteId(noteId)
         }
     }
+
+    override suspend fun clearAllNotes() {
+        noteDao.deleteAllNotes()
+        pendingCreationDao.deleteAll()
+    }
 }

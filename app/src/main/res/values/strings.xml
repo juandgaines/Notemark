@@ -73,6 +73,19 @@
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
 
+    <!-- Settings -->
+    <string name="settings">SETTINGS</string>
+    <string name="log_out">Log out</string>
+    <string name="back">Back</string>
+
+    <!-- Note Detail Modes -->
+    <string name="all_notes">ALL NOTES</string>
+    <string name="date_created">Date created</string>
+    <string name="last_edited">Last edited</string>
+    <string name="just_now">Just now</string>
+    <string name="edit_mode">Edit</string>
+    <string name="reader_mode">Reader</string>
+
     <!-- Discard Dialog -->
     <string name="discard_changes_title">Discard Changes</string>
     <string name="discard_changes_message">You have unsaved changes. Are you sure you want to discard them?</string>
