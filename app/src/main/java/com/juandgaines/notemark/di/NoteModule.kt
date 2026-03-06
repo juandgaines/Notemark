@@ -6,6 +6,7 @@ import com.juandgaines.notemark.note.data.remote.RemoteNoteDataSource
 import com.juandgaines.notemark.note.domain.NoteRepository
 import com.juandgaines.notemark.note.presentation.note_detail.NoteDetailViewModel
 import com.juandgaines.notemark.note.presentation.note_list.NoteListViewModel
+import com.juandgaines.notemark.note.presentation.settings.SettingsViewModel
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.bind
@@ -16,4 +17,5 @@ val noteModule = module {
     singleOf(::NoteRepositoryImpl) bind NoteRepository::class
     viewModelOf(::NoteListViewModel)
     viewModelOf(::NoteDetailViewModel)
+    viewModelOf(::SettingsViewModel)
 }

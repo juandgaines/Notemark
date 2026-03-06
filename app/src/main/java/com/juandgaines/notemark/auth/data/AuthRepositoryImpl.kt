@@ -2,6 +2,7 @@ package com.juandgaines.notemark.auth.data
 
 import com.juandgaines.notemark.auth.data.dto.AuthResponse
 import com.juandgaines.notemark.auth.data.dto.LoginRequest
+import com.juandgaines.notemark.auth.data.dto.RefreshTokenRequest
 import com.juandgaines.notemark.auth.data.dto.RegisterRequest
 import com.juandgaines.notemark.auth.domain.AuthRepository
 import com.juandgaines.notemark.core.data.networking.post
@@ -53,6 +54,20 @@ class AuthRepositoryImpl(
                 password = password,
             )
         )
+        return result.asEmptyResult()
+    }
+
+    override suspend fun logout(): EmptyResult<DataError.Remote> {
+        val refreshToken = sessionStorage.get()?.refreshToken
+            ?: return Result.Failure(DataError.Remote.UNAUTHORIZED)
+
+        val result = httpClient.post<RefreshTokenRequest, Unit>(
+            route = "/api/auth/logout",
+            body = RefreshTokenRequest(refreshToken = refreshToken),
+        )
+
+        sessionStorage.set(null)
+
         return result.asEmptyResult()
     }
 }

@@ -6,4 +6,5 @@ import com.juandgaines.notemark.core.domain.util.EmptyResult
 interface AuthRepository {
     suspend fun login(email: String, password: String): EmptyResult<DataError.Remote>
     suspend fun register(username: String, email: String, password: String): EmptyResult<DataError.Remote>
+    suspend fun logout(): EmptyResult<DataError.Remote>
 }

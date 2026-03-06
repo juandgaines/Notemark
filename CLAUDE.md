@@ -35,9 +35,8 @@ app/src/main/java/com/juandgaines/notemark/
 ### Key Patterns
 
 - **DI:** Koin — register dependencies in `di/` package with `*Module.kt` files. Initialize in the `Application` class.
-- **Offline-First:** `App.applicationScope` (`CoroutineScope(SupervisorJob())`) — provided as `single<CoroutineScope>` via Koin. Inject into repositories for work that must survive ViewModel clearing (e.g., local-first writes with background remote sync). See `docs/patterns/offline-first.md`.
 - **Screen pattern (MVVM):** Each screen has `*Screen.kt`, `*ViewModel.kt`, `*State.kt`, `*Event.kt` (one-time UI events), `*Action.kt` (user actions). ViewModels use `StateFlow` for state and `Channel` for events.
-- **Navigation:** Jetpack Compose Navigation with typed `@Serializable` route objects. Use nested `navigation<Graph>` for multi-screen features (auth, settings) — enables `popUpTo<Graph>` to clear the entire feature stack. Single-screen features use flat `composable<Route>`. See `docs/patterns/navigation.md`.
+- **Navigation:** Jetpack Compose Navigation with typed `@Serializable` route objects.
 
 ## Feature Development Guide
 
@@ -83,19 +82,12 @@ class MyScreenViewModel(
     private val someRepository: SomeRepository   // Constructor-injected via Koin
 ) : ViewModel() {
 
-    private var hasLoadedInitialData = false
-
     private val eventChannel = Channel<MyScreenEvent>()
     val events = eventChannel.receiveAsFlow()
 
     private val _state = MutableStateFlow(MyScreenState())
     val state = _state
-        .onStart {
-            if (!hasLoadedInitialData) {
-                /* load initial data or set up validation observers */
-                hasLoadedInitialData = true
-            }
-        }
+        .onStart { /* load initial data */ }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), MyScreenState())
 
     fun onAction(action: MyScreenAction) {
@@ -106,15 +98,6 @@ class MyScreenViewModel(
     }
 }
 ```
-
-**ViewModel state variants** (see `docs/patterns/viewmodel-tips.md` for details):
-- Complex screens with initial loading/validation: `onStart` + `stateIn` (above)
-- Simple screens with no initial data: `_state.asStateFlow()` — no `onStart` needed
-- Critical forms (login, checkout): add `SavedStateHandle` to survive process death — only when explicitly needed
-
-**TextFields:** Prefer `TextFieldState` in the state data class. Validate reactively with `snapshotFlow { state.text }`. See `docs/patterns/compose-tips.md`.
-
-**Navigation arguments:** Extract via `SavedStateHandle.get<Type>("propertyName")` where keys match `@Serializable` route data class property names. See `docs/patterns/viewmodel-tips.md`.
 
 **Action vs Event:**
 - `Action` = user input flowing **into** the ViewModel (button clicks, text input). Some actions (navigation-only) are handled directly in the Root composable with `else -> Unit` in the ViewModel.
@@ -176,21 +159,23 @@ Detailed implementation patterns are in `docs/patterns/`. **Read the relevant pa
 
 Other patterns:
 - `splash.md` — Android 12+ Splash API with auth check
+- `koin-setup.md` — Koin DI module organization and wiring
+- `jwt-refresh.md` — Ktor bearer token refresh, session expiration handling
 - `typography.md` — Font resources and M3 type scale (if present)
-
 ## Design & Spec References
 
 ### For planning and requirements:
-- Read `docs/milestones/<milestone>/requirements.md` — pre-extracted text from PDF specs (token-efficient)
-- If no `requirements.md` exists, read the PDF directly with the Read tool (use `pages` parameter for large PDFs)
+- Read `milestones/milestone-{N}/requirements.md` — pre-extracted text from PDF specs (token-efficient)
+- **NEVER read PDF files if `requirements.md` exists** — PDFs cost ~5x more tokens and waste context window
+- If no `requirements.md` exists, read the PDF directly with the Read tool as a last resort (use `pages` parameter for large PDFs)
 
 ### For UI implementation (priority order):
 1. **Figma MCP** — use for precise design tokens, spacing, colors (rate-limited: 6/month free, 10-20/min paid)
-2. **Exported designs** — `docs/milestones/<milestone>/designs/{phone,tablet}/*.png` — prefer over Figma MCP to save calls
+2. **Exported designs** — `milestones/milestone-{N}/designs/{phone,tablet}/*.png` — prefer over Figma MCP to save calls
 3. If neither is available, ask the user for design references before guessing
 
 ### Milestone folders:
-- `docs/milestones/m1-auth/`
-- `docs/milestones/m2-notes/`
-- `docs/milestones/m3-sync/`
-- `docs/milestones/m4-polish/`
+- `milestones/milestone-1/`
+- `milestones/milestone-2/`
+- `milestones/milestone-3/`
+- `milestones/milestone-4/`

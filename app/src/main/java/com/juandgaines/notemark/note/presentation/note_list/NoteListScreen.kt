@@ -36,6 +36,7 @@ import org.koin.androidx.compose.koinViewModel
 fun NoteListScreenRoot(
     viewModel: NoteListViewModel = koinViewModel(),
     onNavigateToNote: (String) -> Unit,
+    onNavigateToSettings: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -57,6 +58,7 @@ fun NoteListScreenRoot(
         onAction = { action ->
             when (action) {
                 is NoteListAction.OnNoteClick -> onNavigateToNote(action.noteId)
+                is NoteListAction.OnSettingsClick -> onNavigateToSettings()
                 else -> viewModel.onAction(action)
             }
         },
@@ -78,7 +80,10 @@ fun NoteListScreen(
     Scaffold(
         containerColor = Surface,
         topBar = {
-            NoteListTopBar(profileInitials = state.profileInitials)
+            NoteListTopBar(
+                profileInitials = state.profileInitials,
+                onSettingsClick = { onAction(NoteListAction.OnSettingsClick) },
+            )
         },
         floatingActionButton = {
             GradientFab(onClick = { onAction(NoteListAction.OnCreateNoteClick) })

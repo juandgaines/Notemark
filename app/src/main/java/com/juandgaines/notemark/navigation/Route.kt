@@ -24,3 +24,6 @@ data object NoteListRoute
 
 @Serializable
 data class NoteDetailRoute(val noteId: String)
+
+@Serializable
+data object SettingsRoute

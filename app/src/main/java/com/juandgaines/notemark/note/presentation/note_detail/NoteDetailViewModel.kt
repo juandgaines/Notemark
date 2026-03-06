@@ -58,10 +58,15 @@ class NoteDetailViewModel(
             _state.value.titleTextState.setTextAndPlaceCursorAtEnd(note.title)
             _state.value.contentTextState.setTextAndPlaceCursorAtEnd(note.content)
 
+            val isNewNote = note.title.isBlank() && note.content.isBlank()
+
             _state.update {
                 it.copy(
                     noteId = note.id,
                     canSave = note.title.isNotBlank(),
+                    createdAt = note.createdAt,
+                    lastEditedAt = note.lastEditedAt,
+                    mode = if (isNewNote) NoteDetailMode.EDIT else NoteDetailMode.VIEW,
                 )
             }
         }
@@ -97,16 +102,55 @@ class NoteDetailViewModel(
     fun onAction(action: NoteDetailAction) {
         when (action) {
             is NoteDetailAction.OnSaveClick -> saveNote()
-            is NoteDetailAction.OnCloseClick -> handleClose()
+            is NoteDetailAction.OnCloseEditMode -> handleCloseEditMode()
             is NoteDetailAction.OnConfirmDiscard -> {
                 _state.update { it.copy(showDiscardDialog = false) }
+                val isNewNote = originalTitle.isBlank() && originalContent.isBlank()
+                if (isNewNote) {
+                    viewModelScope.launch {
+                        noteRepository.deleteNoteIfEmpty(noteId)
+                        eventChannel.send(NoteDetailEvent.CloseScreen)
+                    }
+                } else {
+                    _state.value.titleTextState.setTextAndPlaceCursorAtEnd(originalTitle)
+                    _state.value.contentTextState.setTextAndPlaceCursorAtEnd(originalContent)
+                    _state.update {
+                        it.copy(
+                            mode = NoteDetailMode.VIEW,
+                            hasUnsavedChanges = false,
+                        )
+                    }
+                }
+            }
+            is NoteDetailAction.OnDismissDiscardDialog -> {
+                _state.update { it.copy(showDiscardDialog = false) }
+            }
+            is NoteDetailAction.OnBackClick -> {
                 viewModelScope.launch {
                     noteRepository.deleteNoteIfEmpty(noteId)
                     eventChannel.send(NoteDetailEvent.CloseScreen)
                 }
             }
-            is NoteDetailAction.OnDismissDiscardDialog -> {
-                _state.update { it.copy(showDiscardDialog = false) }
+            is NoteDetailAction.OnEditClick -> {
+                _state.update { it.copy(mode = NoteDetailMode.EDIT) }
+            }
+            is NoteDetailAction.OnReaderClick -> {
+                _state.update { it.copy(mode = NoteDetailMode.READER, isUiVisible = false) }
+                viewModelScope.launch {
+                    eventChannel.send(NoteDetailEvent.LockLandscape)
+                }
+            }
+            is NoteDetailAction.OnExitReaderMode -> {
+                _state.update { it.copy(mode = NoteDetailMode.VIEW, isUiVisible = true) }
+                viewModelScope.launch {
+                    eventChannel.send(NoteDetailEvent.UnlockOrientation)
+                }
+            }
+            is NoteDetailAction.OnScreenTap -> {
+                _state.update { it.copy(isUiVisible = !it.isUiVisible) }
+            }
+            is NoteDetailAction.OnScrollStart -> {
+                _state.update { it.copy(isUiVisible = false) }
             }
         }
     }
@@ -120,18 +164,26 @@ class NoteDetailViewModel(
 
         viewModelScope.launch {
             _state.update { it.copy(isSaving = true) }
+            val now = LocalDateTime.now()
             val note = Note(
                 id = noteId,
                 title = title,
                 content = content,
                 createdAt = noteCreatedAt,
-                lastEditedAt = LocalDateTime.now(),
+                lastEditedAt = now,
             )
             when (val result = noteRepository.upsertNote(note)) {
                 is Result.Success -> {
                     originalTitle = title
                     originalContent = content
-                    _state.update { it.copy(isSaving = false, hasUnsavedChanges = false) }
+                    _state.update {
+                        it.copy(
+                            isSaving = false,
+                            hasUnsavedChanges = false,
+                            mode = NoteDetailMode.VIEW,
+                            lastEditedAt = now,
+                        )
+                    }
                     eventChannel.send(NoteDetailEvent.NoteSaved)
                 }
                 is Result.Failure -> {
@@ -142,15 +194,11 @@ class NoteDetailViewModel(
         }
     }
 
-    private fun handleClose() {
+    private fun handleCloseEditMode() {
         if (_state.value.hasUnsavedChanges) {
             _state.update { it.copy(showDiscardDialog = true) }
         } else {
-            viewModelScope.launch {
-                noteRepository.deleteNoteIfEmpty(noteId)
-                eventChannel.send(NoteDetailEvent.CloseScreen)
-            }
+            _state.update { it.copy(mode = NoteDetailMode.VIEW) }
         }
     }
 }
-

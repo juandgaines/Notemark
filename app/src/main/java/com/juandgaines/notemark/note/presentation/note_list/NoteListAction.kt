@@ -6,4 +6,5 @@ sealed interface NoteListAction {
     data object OnCreateNoteClick : NoteListAction
     data object OnConfirmDelete : NoteListAction
     data object OnDismissDeleteDialog : NoteListAction
+    data object OnSettingsClick : NoteListAction
 }

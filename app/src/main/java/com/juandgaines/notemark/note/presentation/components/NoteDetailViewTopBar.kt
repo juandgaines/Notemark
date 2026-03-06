@@ -1,7 +1,7 @@
 package com.juandgaines.notemark.note.presentation.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -13,34 +13,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.juandgaines.notemark.R
-import com.juandgaines.notemark.ui.theme.Surface
+import com.juandgaines.notemark.ui.theme.SurfaceLowest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoteListTopBar(
-    profileInitials: String,
-    onSettingsClick: () -> Unit,
+fun NoteDetailViewTopBar(
+    onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     TopAppBar(
         modifier = modifier,
         title = {
             Text(
-                text = "NoteMark",
-                style = MaterialTheme.typography.headlineMedium,
+                text = stringResource(R.string.all_notes).uppercase(),
+                style = MaterialTheme.typography.labelLarge,
             )
         },
-        actions = {
-            IconButton(onClick = onSettingsClick) {
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
                 Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = stringResource(R.string.settings),
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.all_notes),
                 )
             }
-            ProfileAvatar(initials = profileInitials)
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Surface,
+            containerColor = SurfaceLowest,
         ),
     )
 }
