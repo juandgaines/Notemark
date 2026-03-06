@@ -177,3 +177,20 @@ Detailed implementation patterns are in `docs/patterns/`. **Read the relevant pa
 Other patterns:
 - `splash.md` — Android 12+ Splash API with auth check
 - `typography.md` — Font resources and M3 type scale (if present)
+
+## Design & Spec References
+
+### For planning and requirements:
+- Read `docs/milestones/<milestone>/requirements.md` — pre-extracted text from PDF specs (token-efficient)
+- If no `requirements.md` exists, read the PDF directly with the Read tool (use `pages` parameter for large PDFs)
+
+### For UI implementation (priority order):
+1. **Figma MCP** — use for precise design tokens, spacing, colors (rate-limited: 6/month free, 10-20/min paid)
+2. **Exported designs** — `docs/milestones/<milestone>/designs/{phone,tablet}/*.png` — prefer over Figma MCP to save calls
+3. If neither is available, ask the user for design references before guessing
+
+### Milestone folders:
+- `docs/milestones/m1-auth/`
+- `docs/milestones/m2-notes/`
+- `docs/milestones/m3-sync/`
+- `docs/milestones/m4-polish/`
