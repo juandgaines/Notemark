@@ -14,6 +14,7 @@ import com.juandgaines.notemark.note.domain.SyncScheduler.SyncStatus
 import com.juandgaines.notemark.note.domain.SyncScheduler.SyncType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 class WorkManagerSyncScheduler(
@@ -29,6 +30,7 @@ class WorkManagerSyncScheduler(
     override suspend fun scheduleSync(type: SyncType) {
         when (type) {
             is SyncType.FetchAll -> {
+                Timber.d("SyncScheduler: cancelling existing periodic worker and scheduling new one with interval=${type.interval}")
                 val request = PeriodicWorkRequestBuilder<SyncWorker>(
                     type.interval.inWholeMinutes,
                     TimeUnit.MINUTES,
@@ -45,6 +47,7 @@ class WorkManagerSyncScheduler(
                 )
             }
             is SyncType.SyncNow -> {
+                Timber.d("SyncScheduler: scheduling one-time manual sync")
                 val request = OneTimeWorkRequestBuilder<SyncWorker>()
                     .setConstraints(constraints)
                     .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 2, TimeUnit.SECONDS)
@@ -70,10 +73,12 @@ class WorkManagerSyncScheduler(
     }
 
     override suspend fun cancelSync(tag: String) {
+        Timber.d("SyncScheduler: cancelling all work with tag=$tag")
         workManager.cancelAllWorkByTag(tag)
     }
 
     override suspend fun cancelAllSyncs() {
+        Timber.d("SyncScheduler: cancelling all sync work (logout)")
         workManager.cancelAllWork()
     }
 }

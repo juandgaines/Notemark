@@ -1,7 +1,6 @@
 package com.juandgaines.notemark.settings.presentation.settings_screen
 
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +22,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -36,7 +36,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -169,14 +168,46 @@ fun SettingsScreen(
                         )
                     }
 
-                    if (state.showSyncIntervalDropdown) {
-                        SyncIntervalDropdown(
-                            selectedInterval = state.syncInterval,
-                            onIntervalSelected = { onAction(SettingsAction.OnSyncIntervalSelected(it)) },
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(top = 56.dp, end = 16.dp),
-                        )
+                    DropdownMenu(
+                        expanded = state.showSyncIntervalDropdown,
+                        onDismissRequest = { onAction(SettingsAction.OnSyncIntervalClick) },
+                        containerColor = SurfaceLowest,
+                        shape = RoundedCornerShape(16.dp),
+                        shadowElevation = 8.dp,
+                        modifier = Modifier.width(200.dp),
+                    ) {
+                        SyncInterval.entries.forEachIndexed { index, interval ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onAction(SettingsAction.OnSyncIntervalSelected(interval))
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = interval.displayName,
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp),
+                                    color = OnSurface,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (interval == state.syncInterval) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = OnSurface,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                            }
+                            if (index < SyncInterval.entries.lastIndex) {
+                                HorizontalDivider(
+                                    color = Surface,
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -297,53 +328,3 @@ fun SettingsScreen(
     }
 }
 
-@Composable
-private fun SyncIntervalDropdown(
-    selectedInterval: SyncInterval,
-    onIntervalSelected: (SyncInterval) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .shadow(
-                elevation = 8.dp,
-                shape = RoundedCornerShape(16.dp),
-            )
-            .background(
-                color = SurfaceLowest,
-                shape = RoundedCornerShape(16.dp),
-            )
-            .width(200.dp),
-    ) {
-        SyncInterval.entries.forEachIndexed { index, interval ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onIntervalSelected(interval) }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = interval.displayName,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp),
-                    color = OnSurface,
-                    modifier = Modifier.weight(1f),
-                )
-                if (interval == selectedInterval) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = OnSurface,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
-            if (index < SyncInterval.entries.lastIndex) {
-                HorizontalDivider(
-                    color = Surface,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-            }
-        }
-    }
-}

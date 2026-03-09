@@ -8,6 +8,7 @@ import com.juandgaines.notemark.core.domain.util.onFailure
 import com.juandgaines.notemark.core.domain.util.onSuccess
 import com.juandgaines.notemark.note.domain.NoteRepository
 import com.juandgaines.notemark.settings.domain.SyncPreferences
+import kotlinx.coroutines.CancellationException
 import timber.log.Timber
 
 class SyncWorker(
@@ -29,7 +30,6 @@ class SyncWorker(
         return try {
             // 1. Flush pending queue
             noteRepository.syncPendingItems()
-
             // 2. Fetch remote notes
             var workerResult: Result = Result.success()
             noteRepository.fetchNotes()
@@ -43,6 +43,9 @@ class SyncWorker(
                     workerResult = Result.retry()
                 }
             workerResult
+        } catch (e: CancellationException) {
+            Timber.d("SyncWorker: cancelled (replaced by new worker or logout)")
+            throw e
         } catch (e: Exception) {
             Timber.e(e, "SyncWorker: unexpected error")
             Result.retry()
