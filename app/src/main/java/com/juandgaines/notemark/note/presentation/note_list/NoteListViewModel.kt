@@ -2,14 +2,22 @@ package com.juandgaines.notemark.note.presentation.note_list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineScope
+import com.juandgaines.notemark.core.domain.ConnectivityObserver
 import com.juandgaines.notemark.core.domain.SessionStorage
-import com.juandgaines.notemark.core.domain.util.Result
+import com.juandgaines.notemark.core.domain.util.onFailure
 import com.juandgaines.notemark.core.presentation.util.toUiText
 import com.juandgaines.notemark.note.domain.NoteRepository
+import com.juandgaines.notemark.note.domain.SyncScheduler
 import com.juandgaines.notemark.note.domain.getProfileInitials
+import com.juandgaines.notemark.settings.domain.SyncPreferences
+import com.juandgaines.notemark.settings.domain.SyncInterval
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -19,6 +27,10 @@ import kotlinx.coroutines.launch
 class NoteListViewModel(
     private val noteRepository: NoteRepository,
     private val sessionStorage: SessionStorage,
+    private val connectivityObserver: ConnectivityObserver,
+    private val syncScheduler: SyncScheduler,
+    private val syncPreferences: SyncPreferences,
+    private val applicationScope: CoroutineScope,
 ) : ViewModel() {
 
     private var hasLoadedInitialData = false
@@ -50,15 +62,34 @@ class NoteListViewModel(
             }
         }
 
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            when (val result = noteRepository.fetchNotes()) {
-                is Result.Success -> Unit
-                is Result.Failure -> {
-                    eventChannel.send(NoteListEvent.Error(result.error.toUiText()))
+        // Observe connectivity
+        connectivityObserver.isConnected()
+            .onEach { isOnline ->
+                _state.update { it.copy(isOffline = !isOnline) }
+            }
+            .launchIn(viewModelScope)
+
+        // Fetch notes + sync pending items on app open
+        _state.update { it.copy(isLoading = true) }
+        applicationScope.launch {
+            // Retry pending sync items
+            noteRepository.syncPendingItems()
+
+            noteRepository.fetchNotes()
+                .onFailure { error ->
+                    eventChannel.send(NoteListEvent.Error(error.toUiText()))
+                }
+            _state.update { it.copy(isLoading = false) }
+        }
+
+        // Schedule periodic sync based on saved preference
+        applicationScope.launch {
+            val interval = syncPreferences.getSyncInterval().first()
+            if (interval != SyncInterval.MANUAL_ONLY) {
+                interval.duration?.let { duration ->
+                    syncScheduler.scheduleSync(SyncScheduler.SyncType.FetchAll(duration))
                 }
             }
-            _state.update { it.copy(isLoading = false) }
         }
     }
 

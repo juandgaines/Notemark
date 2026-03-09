@@ -5,16 +5,20 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.juandgaines.notemark.core.domain.util.Result
-import com.juandgaines.notemark.core.presentation.util.toUiText
+import com.juandgaines.notemark.core.domain.util.onSuccess
 import com.juandgaines.notemark.note.domain.Note
 import com.juandgaines.notemark.note.domain.NoteRepository
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
@@ -26,8 +30,10 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
+@OptIn(FlowPreview::class)
 class NoteDetailViewModel(
     private val noteRepository: NoteRepository,
+    private val applicationScope: CoroutineScope,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -67,7 +73,6 @@ class NoteDetailViewModel(
             _state.update {
                 it.copy(
                     noteId = note.id,
-                    canSave = note.title.isNotBlank(),
                     createdAt = formatDateTime(note.createdAt),
                     lastEditedAt = formatDateTime(note.lastEditedAt),
                     mode = if (isNewNote) NoteDetailMode.EDIT else NoteDetailMode.VIEW,
@@ -87,60 +92,76 @@ class NoteDetailViewModel(
     }
 
     private fun observeTextChanges() {
-        snapshotFlow { _state.value.titleTextState.text.toString() }
+        val titleFlow = snapshotFlow { _state.value.titleTextState.text.toString() }
             .distinctUntilChanged()
-            .onEach { title ->
-                val content = _state.value.contentTextState.text.toString()
+
+        val contentFlow = snapshotFlow { _state.value.contentTextState.text.toString() }
+            .distinctUntilChanged()
+
+        val textChanges = combine(titleFlow, contentFlow) { title, content ->
+            Pair(title, content)
+        }
+
+        // Update state reactively
+        textChanges
+            .onEach { (title, content) ->
                 _state.update {
                     it.copy(
                         hasUnsavedChanges = title != originalTitle || content != originalContent,
-                        canSave = title.isNotBlank(),
                     )
                 }
             }
             .launchIn(viewModelScope)
 
-        snapshotFlow { _state.value.contentTextState.text.toString() }
-            .distinctUntilChanged()
-            .onEach { content ->
-                val title = _state.value.titleTextState.text.toString()
+        // Auto-save with debounce
+        textChanges
+            .debounce(1_000L)
+            .filter { (title, content) ->
+                _state.value.mode == NoteDetailMode.EDIT &&
+                    title.isNotBlank() &&
+                    (title != originalTitle || content != originalContent)
+            }
+            .onEach { (title, content) -> performAutoSave(title, content) }
+            .launchIn(viewModelScope)
+    }
+
+    private suspend fun performAutoSave(title: String, content: String) {
+        val now = LocalDateTime.now()
+        val note = Note(
+            id = noteId,
+            title = title,
+            content = content,
+            createdAt = noteCreatedAt,
+            lastEditedAt = now,
+        )
+        noteRepository.upsertNote(note)
+            .onSuccess {
+                originalTitle = title
+                originalContent = content
                 _state.update {
                     it.copy(
-                        hasUnsavedChanges = title != originalTitle || content != originalContent,
+                        hasUnsavedChanges = false,
+                        lastEditedAt = "Just now",
                     )
                 }
             }
-            .launchIn(viewModelScope)
     }
 
     fun onAction(action: NoteDetailAction) {
         when (action) {
-            is NoteDetailAction.OnSaveClick -> saveNote()
             is NoteDetailAction.OnCloseClick -> handleClose()
-            is NoteDetailAction.OnConfirmDiscard -> {
-                _state.update { it.copy(showDiscardDialog = false) }
-                val isNewNote = originalTitle.isBlank() && originalContent.isBlank()
-                if (isNewNote) {
-                    viewModelScope.launch {
-                        noteRepository.deleteNoteIfEmpty(noteId)
-                        eventChannel.send(NoteDetailEvent.CloseScreen)
-                    }
-                } else {
-                    val currentState = _state.value
-                    currentState.titleTextState.setTextAndPlaceCursorAtEnd(originalTitle)
-                    currentState.contentTextState.setTextAndPlaceCursorAtEnd(originalContent)
-                    _state.update { it.copy(hasUnsavedChanges = false, mode = NoteDetailMode.VIEW) }
-                }
-            }
-            is NoteDetailAction.OnDismissDiscardDialog -> {
-                _state.update { it.copy(showDiscardDialog = false) }
-            }
             is NoteDetailAction.OnSwitchToEditMode -> {
                 _state.update { it.copy(mode = NoteDetailMode.EDIT) }
             }
             is NoteDetailAction.OnSwitchToViewMode -> {
                 val wasReader = _state.value.mode == NoteDetailMode.READER
-                _state.update { it.copy(mode = NoteDetailMode.VIEW, areUiElementsVisible = true) }
+                _state.update {
+                    it.copy(
+                        mode = NoteDetailMode.VIEW,
+                        areUiElementsVisible = true,
+                        lastEditedAt = formatDateTime(LocalDateTime.now()),
+                    )
+                }
                 autoHideJob?.cancel()
                 if (wasReader) {
                     viewModelScope.launch {
@@ -189,52 +210,38 @@ class NoteDetailViewModel(
         }
     }
 
-    private fun saveNote() {
-        val currentState = _state.value
-        if (!currentState.canSave) return
+    private fun handleClose() {
+        val title = _state.value.titleTextState.text.toString()
+        val content = _state.value.contentTextState.text.toString()
+        val isNewNote = originalTitle.isBlank() && originalContent.isBlank()
+        val isEmpty = title.isBlank() && content.isBlank()
 
-        val title = currentState.titleTextState.text.toString()
-        val content = currentState.contentTextState.text.toString()
-
-        viewModelScope.launch {
-            _state.update { it.copy(isSaving = true) }
+        if (isEmpty && isNewNote) {
+            applicationScope.launch {
+                noteRepository.deleteNoteIfEmpty(noteId)
+            }
+            viewModelScope.launch {
+                eventChannel.send(NoteDetailEvent.CloseScreen)
+            }
+        } else if (_state.value.hasUnsavedChanges && title.isNotBlank()) {
+            // Fire-and-forget save in applicationScope so it survives ViewModel clearing
+            val now = LocalDateTime.now()
             val note = Note(
                 id = noteId,
                 title = title,
                 content = content,
                 createdAt = noteCreatedAt,
-                lastEditedAt = LocalDateTime.now(),
+                lastEditedAt = now,
             )
-            when (val result = noteRepository.upsertNote(note)) {
-                is Result.Success -> {
-                    originalTitle = title
-                    originalContent = content
-                    _state.update {
-                        it.copy(
-                            isSaving = false,
-                            hasUnsavedChanges = false,
-                            mode = NoteDetailMode.VIEW,
-                            lastEditedAt = "Just now",
-                        )
-                    }
-                    eventChannel.send(NoteDetailEvent.NoteSaved)
-                }
-                is Result.Failure -> {
-                    _state.update { it.copy(isSaving = false) }
-                    eventChannel.send(NoteDetailEvent.Error(result.error.toUiText()))
-                }
+            applicationScope.launch {
+                noteRepository.upsertNote(note)
             }
-        }
-    }
-
-    private fun handleClose() {
-        val isNewNote = originalTitle.isBlank() && originalContent.isBlank()
-        if (_state.value.hasUnsavedChanges) {
-            _state.update { it.copy(showDiscardDialog = true) }
-        } else if (isNewNote) {
-            viewModelScope.launch {
-                noteRepository.deleteNoteIfEmpty(noteId)
-                eventChannel.send(NoteDetailEvent.CloseScreen)
+            _state.update {
+                it.copy(
+                    mode = NoteDetailMode.VIEW,
+                    hasUnsavedChanges = false,
+                    lastEditedAt = "Just now",
+                )
             }
         } else {
             _state.update { it.copy(mode = NoteDetailMode.VIEW) }

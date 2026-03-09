@@ -13,4 +13,6 @@ interface NoteRepository {
     suspend fun getNote(noteId: String): Note?
     suspend fun deleteNoteIfEmpty(noteId: String)
     suspend fun clearAllNotes()
+    suspend fun syncPendingItems()
+    fun hasPendingSyncs(userId: String): Flow<Boolean>
 }

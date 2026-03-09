@@ -35,7 +35,7 @@ app/src/main/java/com/juandgaines/notemark/
 ### Key Patterns
 
 - **DI:** Koin — register dependencies in `di/` package with `*Module.kt` files. Initialize in the `Application` class.
-- **Offline-First:** `App.applicationScope` (`CoroutineScope(SupervisorJob())`) — provided as `single<CoroutineScope>` via Koin. Inject into repositories for work that must survive ViewModel clearing (e.g., local-first writes with background remote sync). See `docs/patterns/offline-first.md`.
+- **Offline-First:** `App.applicationScope` (`CoroutineScope(SupervisorJob())`) — provided as `single<CoroutineScope>` via Koin. Inject into repositories for work that must survive ViewModel clearing (e.g., local-first writes with background remote sync). See `docs/patterns/offline-first.md`. For reliable sync that survives process death, use WorkManager — see `docs/patterns/sync-workmanager.md`.
 - **Screen pattern (MVVM):** Each screen has `*Screen.kt`, `*ViewModel.kt`, `*State.kt`, `*Event.kt` (one-time UI events), `*Action.kt` (user actions). ViewModels use `StateFlow` for state and `Channel` for events.
 - **Navigation:** Jetpack Compose Navigation with typed `@Serializable` route objects. Use nested `navigation<Graph>` for multi-screen features (auth, settings) — enables `popUpTo<Graph>` to clear the entire feature stack. Single-screen features use flat `composable<Route>`. See `docs/patterns/navigation.md`.
 
@@ -138,11 +138,12 @@ typealias EmptyResult<E> = Result<Unit, E>
 
 ### UiText — Displaying User-Facing Strings
 
-`UiText` wraps both dynamic strings and localized resources:
+`UiText` wraps dynamic strings, localized resources, and plurals:
 
 ```kotlin
-UiText.Resource(R.string.error_no_internet)
-UiText.Resource(R.string.greeting, arrayOf(username))
+UiText.StringResource(R.string.error_no_internet)
+UiText.StringResource(R.string.greeting, arrayOf(username))
+UiText.PluralResource(R.plurals.items_count, quantity = count, args = arrayOf(count))
 UiText.DynamicString("Something went wrong")
 
 // In a composable:
@@ -169,6 +170,7 @@ Detailed implementation patterns are in `docs/patterns/`. **Read the relevant pa
 | Building Compose UI (especially TextFields) | `docs/patterns/compose-tips.md` |
 | Adding/modifying navigation routes or graphs | `docs/patterns/navigation.md` |
 | Writing a repository with local+remote sync | `docs/patterns/offline-first.md` |
+| Implementing background work with WorkManager (periodic or one-time) | `docs/patterns/sync-workmanager.md` |
 | Setting up Koin modules or DI wiring | `docs/patterns/koin-setup.md` |
 | Working with encrypted session/token storage | `docs/patterns/encrypted-storage.md` |
 | Implementing token refresh or auth flows | `docs/patterns/jwt-refresh.md` |
@@ -181,16 +183,18 @@ Other patterns:
 ## Design & Spec References
 
 ### For planning and requirements:
-- Read `docs/milestones/<milestone>/requirements.md` — pre-extracted text from PDF specs (token-efficient)
-- If no `requirements.md` exists, read the PDF directly with the Read tool (use `pages` parameter for large PDFs)
-
+- Read all PDFs in `milestones/milestone-{N}/` — each milestone folder may contain multiple PDFs covering different aspects (functional specs, technical specs, API contracts, etc.). Read all PDFs in the folder to get the full picture.
+- For large PDFs, use the Read tool's `pages` parameter to read specific page ranges.
 ### For UI implementation (priority order):
 1. **Figma MCP** — use for precise design tokens, spacing, colors (rate-limited: 6/month free, 10-20/min paid)
-2. **Exported designs** — `docs/milestones/<milestone>/designs/{phone,tablet}/*.png` — prefer over Figma MCP to save calls
+2. **Exported designs** — `milestones/milestone-{N}/designs/{phone,tablet}/*.png` — prefer over Figma MCP to save calls
 3. If neither is available, ask the user for design references before guessing
 
+### Milestone planning:
+When the user asks to work on a milestone (e.g., "let's start milestone 1", "plan milestone 2"), enter plan mode. Read all PDFs and exported designs in that milestone's folder, then draft an implementation plan based on the project's architecture, selected libraries, and `docs/patterns/`.
+
 ### Milestone folders:
-- `docs/milestones/m1-auth/`
-- `docs/milestones/m2-notes/`
-- `docs/milestones/m3-sync/`
-- `docs/milestones/m4-polish/`
+- `milestones/milestone-1/`
+- `milestones/milestone-2/`
+- `milestones/milestone-3/`
+- `milestones/milestone-4/`
