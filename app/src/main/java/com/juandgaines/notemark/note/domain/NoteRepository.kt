@@ -12,4 +12,5 @@ interface NoteRepository {
     suspend fun deleteNote(noteId: String): EmptyResult<DataError>
     suspend fun getNote(noteId: String): Note?
     suspend fun deleteNoteIfEmpty(noteId: String)
+    suspend fun clearAllNotes()
 }

@@ -2,8 +2,10 @@ package com.juandgaines.notemark.auth.data
 
 import com.juandgaines.notemark.auth.data.dto.AuthResponse
 import com.juandgaines.notemark.auth.data.dto.LoginRequest
+import com.juandgaines.notemark.auth.data.dto.LogoutRequest
 import com.juandgaines.notemark.auth.data.dto.RegisterRequest
 import com.juandgaines.notemark.auth.domain.AuthRepository
+import com.juandgaines.notemark.core.data.networking.clearBearerTokens
 import com.juandgaines.notemark.core.data.networking.post
 import com.juandgaines.notemark.core.domain.AuthInfo
 import com.juandgaines.notemark.core.domain.SessionStorage
@@ -53,6 +55,21 @@ class AuthRepositoryImpl(
                 password = password,
             )
         )
+        return result.asEmptyResult()
+    }
+
+    override suspend fun logout(): EmptyResult<DataError.Remote> {
+        val info = sessionStorage.get()
+        val refreshToken = info?.refreshToken ?: ""
+
+        val result = httpClient.post<LogoutRequest, Unit>(
+            route = "/api/auth/logout",
+            body = LogoutRequest(refreshToken = refreshToken)
+        )
+
+        httpClient.clearBearerTokens()
+        sessionStorage.set(null)
+
         return result.asEmptyResult()
     }
 }

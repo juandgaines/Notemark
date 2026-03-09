@@ -72,6 +72,11 @@ class NoteListViewModel(
             is NoteListAction.OnDismissDeleteDialog -> {
                 _state.update { it.copy(showDeleteDialog = false, noteToDeleteId = null) }
             }
+            is NoteListAction.OnSettingsClick -> {
+                viewModelScope.launch {
+                    eventChannel.send(NoteListEvent.NavigateToSettings)
+                }
+            }
             else -> Unit
         }
     }

@@ -1,7 +1,7 @@
 package com.juandgaines.notemark.core.data.networking
 
-import com.juandgaines.notemark.auth.data.dto.AuthResponse
 import com.juandgaines.notemark.auth.data.dto.RefreshTokenRequest
+import com.juandgaines.notemark.auth.data.dto.RefreshTokenResponse
 import com.juandgaines.notemark.core.domain.AuthInfo
 import com.juandgaines.notemark.core.domain.SessionStorage
 import com.juandgaines.notemark.core.domain.util.Result
@@ -64,7 +64,7 @@ class HttpClientFactory(
                         }
 
                         val info = sessionStorage.get()
-                        val refreshResult = client.post<RefreshTokenRequest, AuthResponse>(
+                        val refreshResult = client.post<RefreshTokenRequest, RefreshTokenResponse>(
                             route = "/api/auth/refresh",
                             body = RefreshTokenRequest(
                                 refreshToken = info?.refreshToken ?: "",
