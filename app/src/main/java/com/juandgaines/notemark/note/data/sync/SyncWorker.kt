@@ -7,6 +7,7 @@ import com.juandgaines.notemark.core.domain.SessionStorage
 import com.juandgaines.notemark.core.domain.util.onFailure
 import com.juandgaines.notemark.core.domain.util.onSuccess
 import com.juandgaines.notemark.note.domain.NoteRepository
+import com.juandgaines.notemark.settings.domain.SyncPreferences
 import timber.log.Timber
 
 class SyncWorker(
@@ -14,6 +15,7 @@ class SyncWorker(
     params: WorkerParameters,
     private val noteRepository: NoteRepository,
     private val sessionStorage: SessionStorage,
+    private val syncPreferences: SyncPreferences,
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
@@ -33,6 +35,7 @@ class SyncWorker(
             noteRepository.fetchNotes()
                 .onSuccess {
                     Timber.d("SyncWorker: sync completed successfully")
+                    syncPreferences.setLastSyncTimestamp(System.currentTimeMillis())
                     workerResult = Result.success()
                 }
                 .onFailure { error ->

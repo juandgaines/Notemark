@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import com.juandgaines.notemark.core.domain.ConnectivityObserver
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -15,7 +14,7 @@ class ConnectivityObserverImpl(
     context: Context,
 ) : ConnectivityObserver {
 
-    private val connectivityManager by lazy{
+    private val connectivityManager by lazy {
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     }
 
@@ -26,6 +25,7 @@ class ConnectivityObserverImpl(
             }
 
             override fun onLost(network: Network) {
+                // Default network lost — no active internet connection
                 trySend(false)
             }
 
@@ -34,23 +34,21 @@ class ConnectivityObserverImpl(
                 networkCapabilities: NetworkCapabilities,
             ) {
                 val hasInternet = networkCapabilities.hasCapability(
-                    NetworkCapabilities.NET_CAPABILITY_INTERNET
+                    NetworkCapabilities.NET_CAPABILITY_VALIDATED
                 )
                 trySend(hasInternet)
             }
         }
 
-        val request = NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .build()
-
-        connectivityManager.registerNetworkCallback(request, callback)
+        // Track the system's default (active) network — only fires onLost
+        // when there's truly no connectivity, not when one of many networks drops
+        connectivityManager.registerDefaultNetworkCallback(callback)
 
         // Emit current state
         val currentNetwork = connectivityManager.activeNetwork
         val currentCapabilities = connectivityManager.getNetworkCapabilities(currentNetwork)
         val isConnected = currentCapabilities?.hasCapability(
-            NetworkCapabilities.NET_CAPABILITY_INTERNET
+            NetworkCapabilities.NET_CAPABILITY_VALIDATED
         ) == true
         trySend(isConnected)
 

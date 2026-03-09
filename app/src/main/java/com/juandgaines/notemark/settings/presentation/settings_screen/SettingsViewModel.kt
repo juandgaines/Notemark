@@ -121,7 +121,7 @@ class SettingsViewModel(
             .onEach { status ->
                 when (status) {
                     SyncScheduler.SyncStatus.SUCCEEDED -> {
-                        syncPreferences.setLastSyncTimestamp(System.currentTimeMillis())
+                        // Timestamp is updated by SyncWorker on success
                         _state.update { it.copy(isSyncing = false) }
                     }
                     SyncScheduler.SyncStatus.FAILED -> {
