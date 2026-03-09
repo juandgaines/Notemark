@@ -77,7 +77,12 @@ class ItemRepositoryImpl(
         return when (remoteResult) {
             is Result.Error -> {
                 // Remote failed, but local succeeded — still a success from user's perspective
-                // TODO: Queue for retry or mark as pending sync
+                // Schedule WorkManager sync via applicationScope so it survives scope cancellation
+                applicationScope.launch {
+                    syncScheduler.scheduleSync(
+                        SyncScheduler.SyncType.CreateItem(itemWithId.id)
+                    )
+                }.join()
                 Result.Success(Unit)
             }
             is Result.Success -> {
@@ -93,9 +98,18 @@ class ItemRepositoryImpl(
         // Delete locally first
         localDataSource.deleteItem(id)
 
-        // Fire-and-forget remote delete — no need to await
-        applicationScope.launch {
+        // Fire-and-forget remote delete
+        val remoteResult = applicationScope.async {
             remoteDataSource.deleteItem(id)
+        }.await()
+
+        // If remote delete fails, schedule WorkManager to retry
+        if (remoteResult is Result.Error) {
+            applicationScope.launch {
+                syncScheduler.scheduleSync(
+                    SyncScheduler.SyncType.DeleteItem(id)
+                )
+            }.join()
         }
 
         return Result.Success(Unit)
@@ -103,10 +117,13 @@ class ItemRepositoryImpl(
 }
 ```
 
+> **Note:** Sync scheduling is done inside `applicationScope` so the WorkManager enqueue call completes even if the calling ViewModel or scope is cancelled. This is the standard pattern — the error/failure path is where you schedule reliable sync tasks.
+
 ## Key Principles
 
 1. **Local write is the source of truth** — UI updates immediately from local DB
 2. **Remote sync is best-effort** — failures don't block the user
 3. **applicationScope for fire-and-forget** — use `.launch` when you don't need the result, `.async` + `.await()` when you do
-4. **SupervisorJob** — one failed sync doesn't cancel all others
-5. **Observe local data** — UI collects from Room/local Flow, not from remote calls
+4. **Schedule sync on failure** — when a remote call fails, use `applicationScope` to schedule a WorkManager sync task for reliable retry. This ensures the scheduling itself survives scope cancellation.
+5. **SupervisorJob** — one failed sync doesn't cancel all others
+6. **Observe local data** — UI collects from Room/local Flow, not from remote calls
