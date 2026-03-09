@@ -6,4 +6,5 @@ data class NoteListState(
     val profileInitials: String = "",
     val showDeleteDialog: Boolean = false,
     val noteToDeleteId: String? = null,
+    val isOffline: Boolean = false,
 )

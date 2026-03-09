@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,7 +31,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -58,7 +58,6 @@ import com.juandgaines.notemark.R
 import com.juandgaines.notemark.core.presentation.util.DeviceConfiguration
 import com.juandgaines.notemark.core.presentation.util.ObserveAsEvents
 import com.juandgaines.notemark.core.presentation.util.currentDeviceConfiguration
-import com.juandgaines.notemark.note.presentation.components.DiscardChangesDialog
 import com.juandgaines.notemark.note.presentation.components.NoteDetailModeFab
 import com.juandgaines.notemark.note.presentation.components.NoteDetailTopBar
 import com.juandgaines.notemark.ui.theme.OnSurface
@@ -73,7 +72,8 @@ fun NoteDetailScreenRoot(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = LocalActivity.current
+    val deviceConfig = currentDeviceConfiguration()
 
     BackHandler(enabled = true) {
         when (state.mode) {
@@ -84,9 +84,6 @@ fun NoteDetailScreenRoot(
 
     ObserveAsEvents(viewModel.events) { event ->
         when (event) {
-            is NoteDetailEvent.NoteSaved -> {
-                Toast.makeText(context, context.getString(R.string.note_saved), Toast.LENGTH_SHORT).show()
-            }
             is NoteDetailEvent.CloseScreen -> {
                 activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
                 onClose()
@@ -95,9 +92,7 @@ fun NoteDetailScreenRoot(
                 Toast.makeText(context, event.message.asString(context), Toast.LENGTH_SHORT).show()
             }
             is NoteDetailEvent.EnterReaderMode -> {
-                val windowSizeClass = context.resources.configuration
-                val sw = windowSizeClass.smallestScreenWidthDp
-                if (sw < 600) {
+                if (deviceConfig.isMobile) {
                     activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
                 }
             }
@@ -119,13 +114,6 @@ fun NoteDetailScreen(
         NoteDetailMode.VIEW -> ViewModeScreen(state = state, onAction = onAction)
         NoteDetailMode.EDIT -> EditModeScreen(state = state, onAction = onAction)
         NoteDetailMode.READER -> ReaderModeScreen(state = state, onAction = onAction)
-    }
-
-    if (state.showDiscardDialog) {
-        DiscardChangesDialog(
-            onConfirmDiscard = { onAction(NoteDetailAction.OnConfirmDiscard) },
-            onKeepEditing = { onAction(NoteDetailAction.OnDismissDiscardDialog) },
-        )
     }
 }
 
@@ -305,6 +293,7 @@ private fun MetadataRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditModeScreen(
     state: NoteDetailState,
@@ -323,8 +312,6 @@ private fun EditModeScreen(
         topBar = {
             NoteDetailTopBar(
                 onCloseClick = { onAction(NoteDetailAction.OnCloseClick) },
-                onSaveClick = { onAction(NoteDetailAction.OnSaveClick) },
-                canSave = state.canSave,
             )
         },
     ) { padding ->

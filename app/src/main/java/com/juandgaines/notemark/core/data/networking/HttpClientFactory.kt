@@ -24,16 +24,13 @@ import timber.log.Timber
 
 class HttpClientFactory(
     private val sessionStorage: SessionStorage,
+    private val json: Json,
 ) {
 
     fun build(): HttpClient {
         return HttpClient(CIO) {
             install(ContentNegotiation) {
-                json(
-                    json = Json {
-                        ignoreUnknownKeys = true
-                    }
-                )
+                json(json = json)
             }
             install(Logging) {
                 logger = object : Logger {

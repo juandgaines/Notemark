@@ -91,4 +91,31 @@
     <string name="discard_changes_message">You have unsaved changes. Are you sure you want to discard them?</string>
     <string name="discard">Discard</string>
     <string name="keep_editing">Keep Editing</string>
+
+    <!-- Sync / Settings -->
+    <string name="settings_section_data">DATA</string>
+    <string name="settings_section_account">ACCOUNT</string>
+    <string name="sync_interval">Sync interval</string>
+    <string name="sync_data">Sync Data</string>
+    <string name="last_sync">Last sync: %1$s</string>
+    <string name="offline">Offline</string>
+    <string name="error_offline_logout">You need an internet connection to log out.</string>
+    <string name="error_sync_failed">Sync failed. Please try again.</string>
+    <string name="unsynced_changes_title">Unsynced Changes</string>
+    <string name="unsynced_changes_message">You have unsynced changes. What would you like to do before logging out?</string>
+    <string name="sync_now">Sync now</string>
+    <string name="logout_without_syncing">Log out without syncing</string>
+    <string name="sync_error_title">Sync Error</string>
+    <string name="sync_error_message">An error occurred during sync. You can try again or log out without syncing. Your changes will remain saved locally.</string>
+    <string name="last_sync_never">Never synced</string>
+    <string name="last_sync_just_now">Just now</string>
+
+    <plurals name="last_sync_minutes_ago">
+        <item quantity="one">%d min ago</item>
+        <item quantity="other">%d min ago</item>
+    </plurals>
+    <plurals name="last_sync_hours_ago">
+        <item quantity="one">%d hour ago</item>
+        <item quantity="other">%d hours ago</item>
+    </plurals>
 </resources>

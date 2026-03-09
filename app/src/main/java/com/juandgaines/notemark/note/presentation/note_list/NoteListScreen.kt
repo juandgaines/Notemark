@@ -82,6 +82,7 @@ fun NoteListScreen(
         topBar = {
             NoteListTopBar(
                 profileInitials = state.profileInitials,
+                isOffline = state.isOffline,
                 onSettingsClick = { onAction(NoteListAction.OnSettingsClick) },
             )
         },

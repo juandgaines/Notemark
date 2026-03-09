@@ -138,11 +138,12 @@ typealias EmptyResult<E> = Result<Unit, E>
 
 ### UiText — Displaying User-Facing Strings
 
-`UiText` wraps both dynamic strings and localized resources:
+`UiText` wraps dynamic strings, localized resources, and plurals:
 
 ```kotlin
-UiText.Resource(R.string.error_no_internet)
-UiText.Resource(R.string.greeting, arrayOf(username))
+UiText.StringResource(R.string.error_no_internet)
+UiText.StringResource(R.string.greeting, arrayOf(username))
+UiText.PluralResource(R.plurals.items_count, quantity = count, args = arrayOf(count))
 UiText.DynamicString("Something went wrong")
 
 // In a composable:

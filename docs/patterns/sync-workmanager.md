@@ -298,16 +298,17 @@ class CreateItemWorker(
         val item = localDataSource.getItem(itemId)
             ?: return Result.failure()
 
-        return when (val result = remoteDataSource.createItem(item)) {
-            is com.juandgaines.notemark.core.domain.util.Result.Success -> {
+        var workerResult: Result = Result.failure()
+        remoteDataSource.createItem(item)
+            .onSuccess { remoteItem ->
                 pendingSyncDao.deletePendingCreate(itemId)
-                localDataSource.upsertItem(result.data)
-                Result.success()
+                localDataSource.upsertItem(remoteItem)
+                workerResult = Result.success()
             }
-            is com.juandgaines.notemark.core.domain.util.Result.Failure -> {
-                result.error.toWorkerResult()
+            .onFailure { error ->
+                workerResult = error.toWorkerResult()
             }
-        }
+        return workerResult
     }
 
     companion object {
@@ -334,15 +335,16 @@ class DeleteItemWorker(
         val itemId = params.inputData.getString(ITEM_ID)
             ?: return Result.failure()
 
-        return when (val result = remoteDataSource.deleteItem(itemId)) {
-            is com.juandgaines.notemark.core.domain.util.Result.Success -> {
+        var workerResult: Result = Result.failure()
+        remoteDataSource.deleteItem(itemId)
+            .onSuccess {
                 pendingSyncDao.deletePendingDelete(itemId)
-                Result.success()
+                workerResult = Result.success()
             }
-            is com.juandgaines.notemark.core.domain.util.Result.Failure -> {
-                result.error.toWorkerResult()
+            .onFailure { error ->
+                workerResult = error.toWorkerResult()
             }
-        }
+        return workerResult
     }
 
     companion object {
@@ -365,10 +367,11 @@ class FetchItemsWorker(
             return Result.failure()
         }
 
-        return when (val result = itemRepository.fetchItems()) {
-            is com.juandgaines.notemark.core.domain.util.Result.Success -> Result.success()
-            is com.juandgaines.notemark.core.domain.util.Result.Failure -> result.error.toWorkerResult()
-        }
+        var workerResult: Result = Result.failure()
+        itemRepository.fetchItems()
+            .onSuccess { workerResult = Result.success() }
+            .onFailure { error -> workerResult = error.toWorkerResult() }
+        return workerResult
     }
 }
 ```
@@ -396,28 +399,26 @@ override suspend fun syncPendingItems() {
             .map {
                 launch {
                     val item = localDataSource.getItem(it.itemId) ?: return@launch
-                    when (remoteDataSource.createItem(item)) {
-                        is Result.Failure -> Unit // Will retry on next open or via WorkManager
-                        is Result.Success -> {
+                    remoteDataSource.createItem(item)
+                        .onSuccess {
                             applicationScope.launch {
                                 pendingSyncDao.deletePendingCreate(it.itemId)
                             }.join()
                         }
-                    }
+                    // onFailure: will retry on next open or via WorkManager
                 }
             }
         val deleteJobs = pendingDeletes
             .await()
             .map {
                 launch {
-                    when (remoteDataSource.deleteItem(it.itemId)) {
-                        is Result.Failure -> Unit
-                        is Result.Success -> {
+                    remoteDataSource.deleteItem(it.itemId)
+                        .onSuccess {
                             applicationScope.launch {
                                 pendingSyncDao.deletePendingDelete(it.itemId)
                             }.join()
                         }
-                    }
+                    // onFailure: will retry on next open or via WorkManager
                 }
             }
 
@@ -432,27 +433,36 @@ override suspend fun syncPendingItems() {
 In the ViewModel of the first screen shown after login (e.g., the item list), schedule periodic sync and retry pending operations:
 
 ```kotlin
-private val _state = MutableStateFlow(ItemListState())
-val state = _state
-    .onStart {
-        if (!hasLoadedInitialData) {
-            // Schedule periodic background fetch (e.g., every 30 minutes)
-            viewModelScope.launch {
-                syncScheduler.scheduleSync(
-                    type = SyncScheduler.SyncType.FetchAll(30.minutes)
-                )
-            }
+// Inject applicationScope via constructor — Koin resolves it from the single<CoroutineScope>
+class ItemListViewModel(
+    private val itemRepository: ItemRepository,
+    private val syncScheduler: SyncScheduler,
+    private val applicationScope: CoroutineScope,
+) : ViewModel() {
 
-            // Retry any pending create/delete operations from previous sessions
-            viewModelScope.launch {
-                itemRepository.syncPendingItems()
-            }
+    private val _state = MutableStateFlow(ItemListState())
+    val state = _state
+        .onStart {
+            if (!hasLoadedInitialData) {
+                // Sync work uses applicationScope — survives ViewModel clearing
+                applicationScope.launch {
+                    syncScheduler.scheduleSync(
+                        type = SyncScheduler.SyncType.FetchAll(30.minutes)
+                    )
+                }
 
-            // ... load initial data, observe flows, etc.
-            hasLoadedInitialData = true
+                applicationScope.launch {
+                    itemRepository.syncPendingItems()
+                }
+
+                // UI-only observation stays in viewModelScope
+                // viewModelScope.launch { observeLocalData() }
+
+                hasLoadedInitialData = true
+            }
         }
-    }
-    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), ItemListState())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), ItemListState())
+}
 ```
 
 ## Pending Sync Database Entities
@@ -522,7 +532,7 @@ interface PendingSyncDao {
 
 ## Key Principles
 
-1. **Schedule sync on error via applicationScope** — in the repository, when a remote call fails after a local write succeeds, schedule the WorkManager job inside `applicationScope.launch { }`. This ensures the enqueue call completes even if the calling scope is cancelled.
+1. **applicationScope for all sync work** — any operation that writes data, schedules/cancels workers, syncs pending items, or performs logout must use `applicationScope` (both in repositories and ViewModels). Only use `viewModelScope` for UI-only work: observing flows for state updates, navigation events, timers. This ensures sync operations survive ViewModel clearing.
 2. **Record before scheduling** — always persist the pending operation to the sync table before enqueuing the WorkManager job
 3. **Idempotent workers** — workers may run multiple times; ensure operations are safe to repeat
 4. **Network constraints** — always set `NetworkType.CONNECTED` for remote sync workers
